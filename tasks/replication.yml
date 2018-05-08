@@ -32,6 +32,21 @@
     and (mysql_replication_master != '')
     and not mysql_replication_database
 
+- name: Dump database from master.
+  command: >
+    mysqldump --user={{ mysql_replication_user.name }}
+    --password={{ mysql_replication_user.password }}
+    {{ mysql_replication_database }}
+    --host={{ mysql_replication_master }}
+    --skip-lock-tables --single-transaction --flush-logs --hex-blob
+    --master-data=2 -A > /tmp/{{ inventory_hostname }}.sql
+  when: >
+    ((slave.Is_Slave is defined and not slave.Is_Slave) or (slave.Is_Slave is not defined and slave|failed))
+    and (mysql_replication_role == 'slave')
+    and (mysql_replication_master != '')
+    and mysql_replication_user
+    and mysql_replication_database
+
 - name: Find log position
   command: head /tmp/{{ inventory_hostname }}.sql -n80 | grep -oP "MASTER_LOG_POS=\K([0-9]*)"
   register: master.Pos
